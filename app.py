@@ -383,7 +383,8 @@ def transliterate_text(text, lang_code):
             if res_json[0] == 'SUCCESS' and res_json[1]:
                 # res_json[1][0][1] contains the list of suggestions
                 return res_json[1][0][1][0]
-    except Exception:
+    except Exception as e:
+        st.error(f"Transliteration Error: {e}")
         return None
     return None
 
