@@ -503,7 +503,7 @@ with tab1:
         
         # Transliteration Toggle
         if source_lang != 'en':
-            enable_transliteration = st.checkbox("✍️ Enable Transliteration (Type in English)", value=False, help="Type in English characters (e.g., 'namaste') and it will be converted to the native script.")
+            enable_transliteration = st.checkbox("✍️ Enable Transliteration (Type in English)", value=True, help="Type in English characters (e.g., 'namaste') and it will be converted to the native script.")
         else:
             enable_transliteration = False
         
@@ -554,6 +554,10 @@ with tab1:
             if translated_result:
                 st.markdown("### Translated Text:")
                 st.markdown(f'<div class="translation-output">{translated_result}</div>', unsafe_allow_html=True)
+                
+                # Check for "same text" issue
+                if translated_result.lower().strip() == final_input_text.lower().strip() and source_lang != target_lang:
+                     st.warning("⚠️ The translation looks identical to the input. If you typed in English but meant a different language, make sure 'Enable Transliteration' is checked.")
                 
                 # Save to history
                 history_original = f"{input_text}\n({transliterated_text})" if transliterated_text else input_text
