@@ -603,22 +603,100 @@ with tab2:
     audio_file = st.file_uploader("Upload Audio File (WAV format)", type=['wav'])
 
     st.markdown("---")
- 
-                            
-                            # Save to history
-                            st.session_state.translation_history.append({
-                                'source': speech_source_lang_name,
-                                'target': speech_target_lang_name,
-                                'original': recognized_text,
-                                'translated': translated_text,
-                                'timestamp': time.strftime("%Y-%m-%d %H:%M:%S"),
-                                'type': 'Live Speech'
-                            })
-                            st.session_state.total_translations += 1
-                            
-                    except sr.UnknownValueError:
-                        st.warning("Could not understand audio. Try speaking clearly.")
+    if audio_file is not None:
+        st.markdown("### 🎧 Audio Player")
+        st.audio(audio_file)
+        
+        if st.button("🏁 Start Processing"):
+            # Progress bar for visual feedback
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            
+            try:
+                # 1. Speech to Text
+                status_text.text("🎤 Converting Speech to Text...")
+                progress_bar.progress(25)
+                
+                # Use speech_recognition
+                recognizer = sr.Recognizer()
+                with sr.AudioFile(audio_file) as source:
+                    audio_data = recognizer.record(source)
+                    # Use English as default fallback or map from selection
+                    language_code = 'en-IN'
+                    # Simple mapping - could be improved with INDIAN_LANG_SPEECH_CODES
+                    # But for now let's rely on basic recognizer or user selection if we had mapped it correctly
+                    # Looking at keys: 'hi', 'bn' etc.
+                    if speech_source_lang_name in ['Hindi', 'Bengali', 'Tamil', 'Telugu', 'Marathi', 'Gujarati', 'Urdu', 'Kannada', 'Malayalam', 'Punjabi', 'Odia']:
+                         # Very rough mapping attempt if dictionary keys match
+                         pass
                     
+                    # Better: use the dictionary defined at top
+                    # We need to find the key for speech_source_lang_name
+                    # INDIAN_LANGUAGES values are codes like 'hi', 'bn'
+                    # INDIAN_LANG_SPEECH_CODES maps 'hi' -> 'hi-IN'
+                    
+                    lang_code_short = INDIAN_LANGUAGES.get(speech_source_lang_name, 'en')
+                    lang_code_full = INDIAN_LANG_SPEECH_CODES.get(lang_code_short, 'en-IN')
+                    
+                    recognized_text = recognizer.recognize_google(audio_data, language=lang_code_full)
+                
+                if recognized_text:
+                    progress_bar.progress(50)
+                    st.success("✅ Speech Recognized!")
+                    st.markdown(f"**Original ({speech_source_lang_name}):**")
+                    st.markdown(f'<div class="translation-output">{recognized_text}</div>', unsafe_allow_html=True)
+                    
+                    # 2. Translation
+                    status_text.text("🔄 Translating...")
+                    progress_bar.progress(75)
+                    
+                    translated_text = translate_text(recognized_text, speech_source_lang, speech_target_lang)
+                    
+                    if translated_text:
+                        progress_bar.progress(100)
+                        status_text.text("✨ Completed!")
+                        st.markdown(f"**Translation ({speech_target_lang_name}):**")
+                        st.markdown(f'<div class="translation-output">{translated_text}</div>', unsafe_allow_html=True)
+                        
+                        # Save to history
+                        st.session_state.translation_history.append({
+                            'source': speech_source_lang_name,
+                            'target': speech_target_lang_name,
+                            'original': recognized_text,
+                            'translated': translated_text,
+                            'timestamp': time.strftime("%Y-%m-%d %H:%M:%S"),
+                            'type': 'Live Speech'
+                        })
+                        st.session_state.total_translations += 1
+                        
+            except sr.UnknownValueError:
+                st.error("❌ Could not understand audio. Please ensure clear speech.")
+            except sr.RequestError as e:
+                st.error(f"❌ Could not request results; {e}")
+            except Exception as e:
+                st.error(f"❌ An error occurred: {e}")
+
+with tab3:
+    st.markdown("### Sentiment Analysis")
+    
+    sentiment_text = st.text_area("Enter text for sentiment analysis:", height=150, key="sentiment_input")
+    
+    if st.button("🔍 Analyze Sentiment"):
+        if sentiment_text:
+            with st.spinner("Analyzing..."):
+                sentiment, polarity, emoji, css_class = analyze_sentiment(sentiment_text)
+                
+                if sentiment:
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        st.markdown(f'''
+                        <div class="stats-card">
+                            <div class="stats-number">{emoji}</div>
+                            <div class="stats-label">Emotion</div>
+                        </div>
+                        ''', unsafe_allow_html=True)
+                        
                     with col2:
                         st.markdown(f'''
                         <div class="stats-card">
@@ -628,7 +706,7 @@ with tab2:
                         ''', unsafe_allow_html=True)
                     
                     with col3:
-                        st.markdown(f'''
+                         st.markdown(f'''
                         <div class="stats-card">
                             <div class="stats-number">{polarity:.2f}</div>
                             <div class="stats-label">Polarity</div>
